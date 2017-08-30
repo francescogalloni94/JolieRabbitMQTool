@@ -20,7 +20,9 @@ main
 {
 	iniRequest="DockerAutomatization.ini";
     parseIniFile@IniUtils(iniRequest)(iniResponse);
+    
     println@Console("pulling rabbitmq ...")();
+
     IMAGE_NAME = "rabbitmq";
     with( rq ) {
       .fromImage = IMAGE_NAME;
@@ -144,26 +146,39 @@ main
 	rq.dockerfile =name+"/Dockerfile";
 	build@DockerIn( rq )( response );
   
-    
-	rqCnt.name = "serverqueuecnt";
+    numberOfservers=iniResponse.automatizationParameter.numberOfServers;
+    for ( i=0,i<numberOfservers,i++) {
+      
+	    rqCnt.name = "serverqueuecnt-"+i;
 		rqCnt.Image = "serverqueue:latest";
 		rqCnt.Env[0]="JDEP_RABBITMQ_LOCATION="+serverqueue_host;
 		createContainer@DockerIn( rqCnt )( serverResponse );
 		serverqueuecnt.id=serverResponse.Id;
+		crq.id=serverqueuecnt.id;
+	    startContainer@DockerIn( crq )( response );
+        undef(rqCnt);
+        undef( crq)
 
-    undef(rqCnt);
-    rqCnt.name="clientqueuecnt";
+
+     };
+
+   numberOfClients=iniResponse.automatizationParameter.numberOfClients;
+
+   for (i=0,i<numberOfClients,i++) {
+      
+    rqCnt.name="clientqueuecnt-"i;
     rqCnt.Image="clientqueue:latest";
     rqCnt.Env[0] = "JDEP_RABBITMQ_LOCATION="+serverqueue_host;
     createContainer@DockerIn( rqCnt )( clientResponse );
     clientqueuecnt.id=clientResponse.Id;
-   
-
-    crq.id=serverqueuecnt.id;
+    crq.id=clientqueuecnt.id;
 	startContainer@DockerIn( crq )( response );
-	undef( crq );
-	crq.id=clientqueuecnt.id;
-	startContainer@DockerIn( crq )( response )
+	undef(rqCnt);
+    undef( crq)
+   }
+
+    
+	
 
 
 
